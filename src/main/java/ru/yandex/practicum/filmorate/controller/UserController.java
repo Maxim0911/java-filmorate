@@ -95,7 +95,7 @@ public class UserController {
             }
 
             if (newUser.getLogin() != null) {
-                if (newUser.getLogin().contains(" ")){
+                if (newUser.getLogin().contains(" ")) {
                 throw new ValidationException("Логин не должен содержать пробелы.");
             }
                 oldUser.setLogin(newUser.getLogin());
@@ -118,6 +118,7 @@ public class UserController {
             throw e;
         }
 }
+
     private long getNextId() {
         long currentMaxId = users.keySet()
                 .stream()
