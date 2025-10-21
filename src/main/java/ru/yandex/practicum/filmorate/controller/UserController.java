@@ -2,7 +2,9 @@ package ru.yandex.practicum.filmorate.controller;
 
 import exceptions.NotFoundException;
 import exceptions.ValidationException;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -16,6 +18,8 @@ import static java.text.MessageFormat.format;
 @RestController
 @RequestMapping("/users")
 @Slf4j
+@Validated
+
 public class UserController {
 
     private final Map<Long, User> users = new HashMap<>();
@@ -26,14 +30,10 @@ public class UserController {
     }
 
     @PostMapping
-    public User create(@RequestBody User user) {
+    public User create(@Valid @RequestBody User user) {
 
         try {
             log.info("Добавлен новый пользователь с email={}", user.getEmail());
-
-            if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-                throw new ValidationException("Email не может быть пустым и должен содержать символ @");
-            }
 
             boolean existsEmail = users.values().stream()
                     .anyMatch(e -> e.getEmail().equals(user.getEmail()));
@@ -42,16 +42,8 @@ public class UserController {
                 throw new ValidationException("Этот email уже используется.");
             }
 
-            if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-                throw new ValidationException("Логин не может быть пустым и содержать пробелы");
-            }
-
             if (user.getName() == null || user.getName().isBlank()) {
                 user.setName(user.getLogin());
-            }
-
-            if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-                throw new ValidationException("Некорректно введена дата рождения. Вы еще не родились:)");
             }
 
             user.setId(getNextId());
@@ -67,7 +59,7 @@ public class UserController {
     }
 
     @PutMapping
-    public User update(@RequestBody User newUser) {
+    public User update(@Valid @RequestBody User newUser) {
         try {
             if (newUser.getId() <= 0) {
                 throw new NotFoundException("Необходимо указать ID пользователя");

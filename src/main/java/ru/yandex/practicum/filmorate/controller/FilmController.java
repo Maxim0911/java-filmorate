@@ -37,27 +37,16 @@ public class FilmController {
     @PostMapping
     public Film create(@RequestBody Film film) {
         try {
-            log.info("Добавление нового фильма с описанием {}", film.getDescription());
-
-            if (film.getName() == null || film.getName().isBlank()) {
-                throw new ValidationException("Название фильма должно быть заполнено.");
-            }
-
-            if (film.getDescription() == null || film.getDescription().length() > 200) {
-                throw new ValidationException("Описание фильма не может превышать 200 символов или быть пустым.");
-            }
-
             LocalDate minReleaseDate = LocalDate.of(1895, 12, 28);
-            if (film.getReleaseDate() == null || film.getReleaseDate().isBefore(minReleaseDate)) {
-                throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года.");
+            if (film.getReleaseDate().isBefore(minReleaseDate)) {
+                throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
             }
 
-            if (film.getDuration() <= 0) {
-                throw new ValidationException("Продолжительность фильма не может быть отрицательным числом, либо равной нулю.");
-            }
+            log.info("Добавление нового фильма: {}", film.getName());
 
             film.setId(getNextId());
             films.put(film.getId(), film);
+
             log.info("Новый фильм успешно добавлен. Присвоено ID={}", film.getId());
             return film;
         } catch (ValidationException e) {
