@@ -2,7 +2,9 @@ package ru.yandex.practicum.filmorate.controller;
 
 import exceptions.NotFoundException;
 import exceptions.ValidationException;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 
@@ -20,6 +22,20 @@ public class FilmController {
 
     private final Map<Long, Film> films = new HashMap<>();
 
+    @ExceptionHandler(ValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleValidationException(ValidationException e) {
+        log.error("Validation error: {}", e.getMessage());
+        return Map.of("error", e.getMessage());
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleNotFoundException(NotFoundException e) {
+        log.error("Not found error: {}", e.getMessage());
+        return Map.of("error", e.getMessage());
+    }
+
     private long getNextId() {
         long currentMaxId = films.keySet()
                 .stream()
@@ -35,7 +51,7 @@ public class FilmController {
     }
 
     @PostMapping
-    public Film create(@RequestBody Film film) {
+    public Film create(@Valid @RequestBody Film film) {
         try {
             LocalDate minReleaseDate = LocalDate.of(1895, 12, 28);
             if (film.getReleaseDate().isBefore(minReleaseDate)) {
@@ -56,7 +72,7 @@ public class FilmController {
     }
 
     @PutMapping
-    public Film update(@RequestBody Film newFilm) {
+    public Film update(@Valid @RequestBody Film newFilm) {
         try {
 
             if (newFilm.getId() == null || newFilm.getId() == 0) {
