@@ -175,30 +175,20 @@ class FilmControllerTest {
     }
 
     @Test
-    void getPopularFilms_ShouldReturnFilms() {
-        // Given
+    void getPopularFilms_WithNullCount_ShouldUseDefault() {
         List<Film> popularFilms = Arrays.asList(validFilm);
-        when(filmService.getPopularFilms(10)).thenReturn(popularFilms);
-
-        // When
-        List<Film> result = filmController.getPopularFilms(10);
-
-        // Then
+        when(filmService.getPopularFilms(any(Integer.class))).thenReturn(popularFilms);
+        List<Film> result = filmController.getPopularFilms(null);
         assertEquals(1, result.size());
         verify(filmService, times(1)).getPopularFilms(10);
     }
 
     @Test
-    void getPopularFilms_WithNullCount_ShouldUseDefault() {
-        // Given
+    void getPopularFilms_WithCustomCount_ShouldUseProvidedCount() {
         List<Film> popularFilms = Arrays.asList(validFilm);
-        when(filmService.getPopularFilms(10)).thenReturn(popularFilms);
-
-        // When
-        List<Film> result = filmController.getPopularFilms(null);
-
-        // Then
+        when(filmService.getPopularFilms(any(Integer.class))).thenReturn(popularFilms);
+        List<Film> result = filmController.getPopularFilms(5);
         assertEquals(1, result.size());
-        verify(filmService, times(1)).getPopularFilms(10);
+        verify(filmService, times(1)).getPopularFilms(5);
     }
 }
