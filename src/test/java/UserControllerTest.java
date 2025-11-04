@@ -4,213 +4,207 @@ import exceptions.NotFoundException;
 import exceptions.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.time.LocalDate;
-import java.util.Collection;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class UserControllerTest {
 
+    @Mock
+    private UserService userService;
+
+    @InjectMocks
     private UserController userController;
+
+    private User validUser;
 
     @BeforeEach
     void setUp() {
-        userController = new UserController();
-    }
-
-    private User createValidUser() {
-        User user = new User();
-        user.setEmail("test@mail.ru");
-        user.setLogin("validlogin");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-        return user;
-    }
-
-    @Test
-    void createUser_WithValidData_ShouldSuccess() {
-        User user = createValidUser();
-
-        User result = userController.create(user);
-
-        assertNotNull(result.getId());
-        assertEquals("test@mail.ru", result.getEmail());
-        assertEquals("validlogin", result.getLogin());
-        assertEquals("Test User", result.getName());
-    }
-
-    @Test
-    void createUser_WithDuplicateEmail_ShouldThrowException() {
-        User user1 = createValidUser();
-        userController.create(user1);
-
-        User user2 = createValidUser();
-        user2.setLogin("differentlogin");
-
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> userController.create(user2));
-        assertEquals("Этот email уже используется.", exception.getMessage());
-    }
-
-    @Test
-    void createUser_WithNullName_ShouldSetLoginAsName() {
-        User user = createValidUser();
-        user.setName(null);
-
-        User result = userController.create(user);
-
-        assertEquals("validlogin", result.getName());
-    }
-
-    @Test
-    void createUser_WithBlankName_ShouldSetLoginAsName() {
-        User user = createValidUser();
-        user.setName("   ");
-
-        User result = userController.create(user);
-
-        assertEquals("validlogin", result.getName());
-    }
-
-    @Test
-    void updateUser_WithValidData_ShouldSuccess() {
-        User user = createValidUser();
-        User createdUser = userController.create(user);
-
-        User updateUser = new User();
-        updateUser.setId(createdUser.getId());
-        updateUser.setEmail("new@mail.ru");
-        updateUser.setLogin("newlogin");
-        updateUser.setName("New Name");
-        updateUser.setBirthday(LocalDate.of(1991, 1, 1));
-
-        User result = userController.update(updateUser);
-
-        assertEquals("new@mail.ru", result.getEmail());
-        assertEquals("newlogin", result.getLogin());
-        assertEquals("New Name", result.getName());
-        assertEquals(LocalDate.of(1991, 1, 1), result.getBirthday());
-    }
-
-    @Test
-    void updateUser_WithNegativeId_ShouldThrowException() {
-        User updateUser = new User();
-        updateUser.setId(-1L);
-        updateUser.setEmail("test@mail.ru");
-        updateUser.setLogin("testlogin");
-
-        NotFoundException exception = assertThrows(NotFoundException.class,
-                () -> userController.update(updateUser));
-        assertEquals("Необходимо указать ID пользователя", exception.getMessage());
-    }
-
-    @Test
-    void updateUser_WithDuplicateEmail_ShouldThrowException() {
-        // Создаем первого пользователя
-        User user1 = createValidUser();
-        user1.setEmail("user1@mail.ru");
-        userController.create(user1);
-
-        // Создаем второго пользователя
-        User user2 = createValidUser();
-        user2.setEmail("user2@mail.ru");
-        user2.setLogin("user2");
-        User createdUser2 = userController.create(user2);
-
-        // Пытаемся обновить второго пользователя с email первого
-        User updateUser = new User();
-        updateUser.setId(createdUser2.getId());
-        updateUser.setEmail("user1@mail.ru"); // дублируем email первого пользователя
-        updateUser.setLogin("user2");
-
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> userController.update(updateUser));
-        assertEquals("Этот email уже используется.", exception.getMessage());
-    }
-
-    @Test
-    void updateUser_WithLoginContainingSpaces_ShouldThrowException() {
-        User user = createValidUser();
-        User createdUser = userController.create(user);
-
-        User updateUser = new User();
-        updateUser.setId(createdUser.getId());
-        updateUser.setLogin("login with spaces");
-        updateUser.setEmail("new@mail.ru"); // новый email чтобы избежать конфликта
-
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> userController.update(updateUser));
-        assertEquals("Логин не должен содержать пробелы.", exception.getMessage());
-    }
-
-    @Test
-    void updateUser_WithFutureBirthday_ShouldThrowException() {
-        User user = createValidUser();
-        User createdUser = userController.create(user);
-
-        User updateUser = new User();
-        updateUser.setId(createdUser.getId());
-        updateUser.setBirthday(LocalDate.now().plusDays(1));
-        updateUser.setEmail("new@mail.ru"); // новый email чтобы избежать конфликта
-
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> userController.update(updateUser));
-        assertEquals("Некорректно введена дата рождения. Вы еще не родились:)", exception.getMessage());
-    }
-
-    @Test
-    void updateUser_PartialUpdate_ShouldSuccess() {
-        User user = createValidUser();
-        User createdUser = userController.create(user);
-
-        User partialUpdate = new User();
-        partialUpdate.setId(createdUser.getId());
-        partialUpdate.setEmail("new@mail.ru");
-        // остальные поля остаются null
-
-        User result = userController.update(partialUpdate);
-
-        assertEquals("new@mail.ru", result.getEmail());
-        assertEquals("validlogin", result.getLogin()); // старое значение
-        assertEquals("Test User", result.getName()); // старое значение
+        validUser = new User();
+        validUser.setId(1L);
+        validUser.setEmail("test@mail.ru");
+        validUser.setLogin("validlogin");
+        validUser.setName("Test User");
+        validUser.setBirthday(LocalDate.of(1990, 1, 1));
     }
 
     @Test
     void findAll_ShouldReturnAllUsers() {
-        User user1 = createValidUser();
-        userController.create(user1);
-
-        User user2 = createValidUser();
-        user2.setEmail("another@mail.ru");
-        user2.setLogin("anotherlogin");
-        userController.create(user2);
-
-        Collection<User> users = userController.findAll();
-
-        assertEquals(2, users.size());
-    }
-
-    @Test
-    void findAll_WhenNoUsers_ShouldReturnEmptyCollection() {
-        Collection<User> users = userController.findAll();
-
-        assertTrue(users.isEmpty());
-    }
-
-    @Test
-    void idGeneration_ShouldBeSequential() {
-        User user1 = createValidUser();
-        User createdUser1 = userController.create(user1);
-
-        User user2 = createValidUser();
+        // Given
+        User user2 = new User();
+        user2.setId(2L);
         user2.setEmail("user2@mail.ru");
-        user2.setLogin("user2");
-        User createdUser2 = userController.create(user2);
+        List<User> users = Arrays.asList(validUser, user2);
+        when(userService.findAll()).thenReturn(users);
 
-        assertEquals(1L, createdUser1.getId());
-        assertEquals(2L, createdUser2.getId());
+        // When
+        List<User> result = userController.findAll();
+
+        // Then
+        assertEquals(2, result.size());
+        verify(userService, times(1)).findAll();
+    }
+
+    @Test
+    void getUser_WithValidId_ShouldReturnUser() {
+        // Given
+        when(userService.getUserById(1L)).thenReturn(validUser);
+
+        // When
+        User result = userController.getUser(1L);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("test@mail.ru", result.getEmail());
+        verify(userService, times(1)).getUserById(1L);
+    }
+
+    @Test
+    void getUser_WithInvalidId_ShouldThrowException() {
+        // Given
+        when(userService.getUserById(999L))
+                .thenThrow(new NotFoundException("Пользователь с id=999 не найден"));
+
+        // When & Then
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> userController.getUser(999L));
+        assertEquals("Пользователь с id=999 не найден", exception.getMessage());
+    }
+
+    @Test
+    void create_WithValidData_ShouldReturnUser() {
+        // Given
+        User newUser = new User();
+        newUser.setEmail("new@mail.ru");
+        newUser.setLogin("newlogin");
+        newUser.setName("New User");
+        newUser.setBirthday(LocalDate.of(1995, 1, 1));
+
+        when(userService.create(any(User.class))).thenReturn(validUser);
+
+        // When
+        User result = userController.create(newUser);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        verify(userService, times(1)).create(newUser);
+    }
+
+    @Test
+    void create_WithDuplicateEmail_ShouldThrowException() {
+        // Given
+        User duplicateUser = new User();
+        duplicateUser.setEmail("test@mail.ru");
+        duplicateUser.setLogin("differentlogin");
+
+        when(userService.create(any(User.class)))
+                .thenThrow(new ValidationException("Этот email уже используется."));
+
+        // When & Then
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> userController.create(duplicateUser));
+        assertEquals("Этот email уже используется.", exception.getMessage());
+    }
+
+    @Test
+    void update_WithValidData_ShouldReturnUpdatedUser() {
+        // Given
+        User updatedUser = new User();
+        updatedUser.setId(1L);
+        updatedUser.setEmail("updated@mail.ru");
+        updatedUser.setLogin("updatedlogin");
+        updatedUser.setName("Updated User");
+
+        when(userService.update(any(User.class))).thenReturn(updatedUser);
+
+        // When
+        User result = userController.update(updatedUser);
+
+        // Then
+        assertEquals("updated@mail.ru", result.getEmail());
+        assertEquals("updatedlogin", result.getLogin());
+        verify(userService, times(1)).update(updatedUser);
+    }
+
+    @Test
+    void update_WithNonExistentId_ShouldThrowException() {
+        // Given
+        User nonExistentUser = new User();
+        nonExistentUser.setId(999L);
+        nonExistentUser.setEmail("test@mail.ru");
+
+        when(userService.update(any(User.class)))
+                .thenThrow(new NotFoundException("Пользователь с id=999 не найден"));
+
+        // When & Then
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> userController.update(nonExistentUser));
+        assertEquals("Пользователь с id=999 не найден", exception.getMessage());
+    }
+
+    @Test
+    void addFriend_ShouldCallService() {
+        // When
+        userController.addFriend(1L, 2L);
+
+        // Then
+        verify(userService, times(1)).addFriend(1L, 2L);
+    }
+
+    @Test
+    void removeFriend_ShouldCallService() {
+        // When
+        userController.removeFriend(1L, 2L);
+
+        // Then
+        verify(userService, times(1)).removeFriend(1L, 2L);
+    }
+
+    @Test
+    void getFriends_ShouldReturnFriendsList() {
+        // Given
+        User friend = new User();
+        friend.setId(2L);
+        friend.setEmail("friend@mail.ru");
+        List<User> friends = Arrays.asList(friend);
+        when(userService.getFriends(1L)).thenReturn(friends);
+
+        // When
+        List<User> result = userController.getFriends(1L);
+
+        // Then
+        assertEquals(1, result.size());
+        verify(userService, times(1)).getFriends(1L);
+    }
+
+    @Test
+    void getCommonFriends_ShouldReturnCommonFriends() {
+        // Given
+        User commonFriend = new User();
+        commonFriend.setId(3L);
+        commonFriend.setEmail("common@mail.ru");
+        List<User> commonFriends = Arrays.asList(commonFriend);
+        when(userService.getCommonFriends(1L, 2L)).thenReturn(commonFriends);
+
+        // When
+        List<User> result = userController.getCommonFriends(1L, 2L);
+
+        // Then
+        assertEquals(1, result.size());
+        verify(userService, times(1)).getCommonFriends(1L, 2L);
     }
 }

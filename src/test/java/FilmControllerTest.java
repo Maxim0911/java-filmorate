@@ -1,23 +1,40 @@
 
+
 import exceptions.NotFoundException;
 import exceptions.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import ru.yandex.practicum.filmorate.controller.FilmController;
 import ru.yandex.practicum.filmorate.model.Film;
-import java.time.LocalDate;
-import java.util.Collection;
-import static org.junit.jupiter.api.Assertions.*;
+import ru.yandex.practicum.filmorate.service.FilmService;
 
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
 class FilmControllerTest {
 
+    @Mock
+    private FilmService filmService;
+
+    @InjectMocks
     private FilmController filmController;
+
     private Film validFilm;
 
     @BeforeEach
     void setUp() {
-        filmController = new FilmController();
         validFilm = new Film();
+        validFilm.setId(1L);
         validFilm.setName("Valid Film");
         validFilm.setDescription("Valid description");
         validFilm.setReleaseDate(LocalDate.of(2000, 1, 1));
@@ -25,224 +42,163 @@ class FilmControllerTest {
     }
 
     @Test
-    void createFilm_WithValidData_ShouldSuccess() {
-        Film result = filmController.create(validFilm);
+    void findAll_ShouldReturnAllFilms() {
+        // Given
+        Film film2 = new Film();
+        film2.setId(2L);
+        film2.setName("Another Film");
+        List<Film> films = Arrays.asList(validFilm, film2);
+        when(filmService.findAll()).thenReturn(films);
 
-        assertNotNull(result.getId());
+        // When
+        List<Film> result = filmController.findAll();
+
+        // Then
+        assertEquals(2, result.size());
+        verify(filmService, times(1)).findAll();
+    }
+
+    @Test
+    void getFilm_WithValidId_ShouldReturnFilm() {
+        // Given
+        when(filmService.getFilmById(1L)).thenReturn(validFilm);
+
+        // When
+        Film result = filmController.getFilm(1L);
+
+        // Then
+        assertNotNull(result);
         assertEquals("Valid Film", result.getName());
-        assertEquals("Valid description", result.getDescription());
-        assertEquals(120, result.getDuration());
+        verify(filmService, times(1)).getFilmById(1L);
     }
 
     @Test
-    void createFilm_WithReleaseDateBefore1895_ShouldThrowException() {
-        validFilm.setReleaseDate(LocalDate.of(1894, 12, 31));
+    void getFilm_WithInvalidId_ShouldThrowException() {
+        // Given
+        when(filmService.getFilmById(999L))
+                .thenThrow(new NotFoundException("Фильм с id=999 не найден"));
 
+        // When & Then
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> filmController.getFilm(999L));
+        assertEquals("Фильм с id=999 не найден", exception.getMessage());
+    }
+
+    @Test
+    void create_WithValidData_ShouldReturnFilm() {
+        // Given
+        Film newFilm = new Film();
+        newFilm.setName("New Film");
+        newFilm.setDescription("New description");
+        newFilm.setReleaseDate(LocalDate.of(2020, 1, 1));
+        newFilm.setDuration(100);
+
+        when(filmService.create(any(Film.class))).thenReturn(validFilm);
+
+        // When
+        Film result = filmController.create(newFilm);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        verify(filmService, times(1)).create(newFilm);
+    }
+
+    @Test
+    void create_WithInvalidData_ShouldThrowException() {
+        // Given
+        Film invalidFilm = new Film();
+        invalidFilm.setReleaseDate(LocalDate.of(1890, 1, 1));
+
+        when(filmService.create(any(Film.class)))
+                .thenThrow(new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года"));
+
+        // When & Then
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> filmController.create(validFilm));
+                () -> filmController.create(invalidFilm));
         assertEquals("Дата релиза не может быть раньше 28 декабря 1895 года", exception.getMessage());
     }
 
     @Test
-    void createFilm_WithReleaseDateExactly1895_12_28_ShouldSuccess() {
-        validFilm.setReleaseDate(LocalDate.of(1895, 12, 28));
+    void update_WithValidData_ShouldReturnUpdatedFilm() {
+        // Given
+        Film updatedFilm = new Film();
+        updatedFilm.setId(1L);
+        updatedFilm.setName("Updated Film");
+        updatedFilm.setDescription("Updated description");
+        updatedFilm.setReleaseDate(LocalDate.of(2020, 1, 1));
+        updatedFilm.setDuration(150);
 
-        Film result = filmController.create(validFilm);
-        assertEquals(LocalDate.of(1895, 12, 28), result.getReleaseDate());
-    }
+        when(filmService.update(any(Film.class))).thenReturn(updatedFilm);
 
-    @Test
-    void createFilm_WithReleaseDateOneDayBeforeMinDate_ShouldThrowException() {
-        validFilm.setReleaseDate(LocalDate.of(1895, 12, 27));
+        // When
+        Film result = filmController.update(updatedFilm);
 
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> filmController.create(validFilm));
-        assertEquals("Дата релиза не может быть раньше 28 декабря 1895 года", exception.getMessage());
-    }
-
-    @Test
-    void updateFilm_WithValidData_ShouldSuccess() {
-        Film createdFilm = filmController.create(validFilm);
-
-        Film updateFilm = new Film();
-        updateFilm.setId(createdFilm.getId());
-        updateFilm.setName("Updated Film");
-        updateFilm.setDescription("Updated description");
-        updateFilm.setReleaseDate(LocalDate.of(2020, 1, 1));
-        updateFilm.setDuration(150);
-
-        Film result = filmController.update(updateFilm);
-
+        // Then
         assertEquals("Updated Film", result.getName());
         assertEquals("Updated description", result.getDescription());
-        assertEquals(150, result.getDuration());
+        verify(filmService, times(1)).update(updatedFilm);
     }
 
     @Test
-    void updateFilm_WithInvalidId_ShouldThrowException() {
-        Film updateFilm = new Film();
-        updateFilm.setId(0L);
+    void update_WithNonExistentId_ShouldThrowException() {
+        // Given
+        Film nonExistentFilm = new Film();
+        nonExistentFilm.setId(999L);
+        nonExistentFilm.setName("Non Existent Film");
 
+        when(filmService.update(any(Film.class)))
+                .thenThrow(new NotFoundException("Фильм с id=999 не найден"));
+
+        // When & Then
         NotFoundException exception = assertThrows(NotFoundException.class,
-                () -> filmController.update(updateFilm));
-        assertEquals("Необходимо указать ID фильма.", exception.getMessage());
+                () -> filmController.update(nonExistentFilm));
+        assertEquals("Фильм с id=999 не найден", exception.getMessage());
     }
 
     @Test
-    void updateFilm_WithNonExistentId_ShouldThrowException() {
-        Film updateFilm = new Film();
-        updateFilm.setId(999L);
-        updateFilm.setName("Some Name");
+    void addLike_ShouldCallService() {
+        // When
+        filmController.addLike(1L, 1L);
 
-        NotFoundException exception = assertThrows(NotFoundException.class,
-                () -> filmController.update(updateFilm));
-        assertTrue(exception.getMessage().contains("Фильм с id=999 не найден"));
+        // Then
+        verify(filmService, times(1)).addLike(1L, 1L);
     }
 
     @Test
-    void updateFilm_PartialUpdate_ShouldSuccess() {
-        Film createdFilm = filmController.create(validFilm);
+    void removeLike_ShouldCallService() {
+        // When
+        filmController.removeLike(1L, 1L);
 
-        Film partialUpdate = new Film();
-        partialUpdate.setId(createdFilm.getId());
-        partialUpdate.setName("Only Name Updated");
-
-        Film result = filmController.update(partialUpdate);
-
-        assertEquals("Only Name Updated", result.getName());
-        assertEquals("Valid description", result.getDescription());
-        assertEquals(120, result.getDuration());
+        // Then
+        verify(filmService, times(1)).removeLike(1L, 1L);
     }
 
     @Test
-    void updateFilm_WithEmptyName_ShouldThrowException() {
-        Film createdFilm = filmController.create(validFilm);
+    void getPopularFilms_ShouldReturnFilms() {
+        // Given
+        List<Film> popularFilms = Arrays.asList(validFilm);
+        when(filmService.getPopularFilms(10)).thenReturn(popularFilms);
 
-        Film updateFilm = new Film();
-        updateFilm.setId(createdFilm.getId());
-        updateFilm.setName("");
+        // When
+        List<Film> result = filmController.getPopularFilms(10);
 
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> filmController.update(updateFilm));
-        assertEquals("Название фильма не может быть пустым.", exception.getMessage());
+        // Then
+        assertEquals(1, result.size());
+        verify(filmService, times(1)).getPopularFilms(10);
     }
 
     @Test
-    void updateFilm_WithTooLongDescription_ShouldThrowException() {
-        Film createdFilm = filmController.create(validFilm);
+    void getPopularFilms_WithNullCount_ShouldUseDefault() {
+        // Given
+        List<Film> popularFilms = Arrays.asList(validFilm);
+        when(filmService.getPopularFilms(10)).thenReturn(popularFilms);
 
-        Film updateFilm = new Film();
-        updateFilm.setId(createdFilm.getId());
-        updateFilm.setDescription("A".repeat(201));
+        // When
+        List<Film> result = filmController.getPopularFilms(null);
 
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> filmController.update(updateFilm));
-        assertEquals("Описание фильма не может превышать 200 символов.", exception.getMessage());
-    }
-
-    @Test
-    void updateFilm_WithNegativeDuration_ShouldThrowException() {
-        Film createdFilm = filmController.create(validFilm);
-
-        Film updateFilm = new Film();
-        updateFilm.setId(createdFilm.getId());
-        updateFilm.setDuration(-10);
-
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> filmController.update(updateFilm));
-        assertEquals("Продолжительность фильма не может быть отрицательным числом, либо равной нулю.", exception.getMessage());
-    }
-
-    @Test
-    void updateFilm_WithZeroDuration_ShouldThrowException() {
-        Film createdFilm = filmController.create(validFilm);
-
-        Film updateFilm = new Film();
-        updateFilm.setId(createdFilm.getId());
-        updateFilm.setDuration(0);
-
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> filmController.update(updateFilm));
-        assertEquals("Продолжительность фильма не может быть отрицательным числом, либо равной нулю.", exception.getMessage());
-    }
-
-    @Test
-    void updateFilm_WithOldReleaseDate_ShouldThrowException() {
-        Film createdFilm = filmController.create(validFilm);
-
-        Film updateFilm = new Film();
-        updateFilm.setId(createdFilm.getId());
-        updateFilm.setReleaseDate(LocalDate.of(1890, 1, 1));
-
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> filmController.update(updateFilm));
-        assertEquals("Дата релиза не может быть раньше 28 декабря 1895 года.", exception.getMessage());
-    }
-
-    @Test
-    void findAll_ShouldReturnAllFilms() {
-        filmController.create(validFilm);
-
-        Film anotherFilm = new Film();
-        anotherFilm.setName("Another Film");
-        anotherFilm.setDescription("Another description");
-        anotherFilm.setReleaseDate(LocalDate.of(2010, 1, 1));
-        anotherFilm.setDuration(90);
-        filmController.create(anotherFilm);
-
-        Collection<Film> films = filmController.findAll();
-
-        assertEquals(2, films.size());
-    }
-
-    @Test
-    void findAll_WhenNoFilms_ShouldReturnEmptyCollection() {
-        Collection<Film> films = filmController.findAll();
-
-        assertTrue(films.isEmpty());
-    }
-
-    @Test
-    void createFilm_WithMaxDuration_ShouldSuccess() {
-        validFilm.setDuration(Integer.MAX_VALUE);
-
-        Film result = filmController.create(validFilm);
-        assertEquals(Integer.MAX_VALUE, result.getDuration());
-    }
-
-    @Test
-    void createFilm_WithCurrentDate_ShouldSuccess() {
-        validFilm.setReleaseDate(LocalDate.now());
-
-        Film result = filmController.create(validFilm);
-        assertEquals(LocalDate.now(), result.getReleaseDate());
-    }
-
-    @Test
-    void updateFilm_WithNullDuration_ShouldUseOldValue() {
-        Film createdFilm = filmController.create(validFilm);
-
-        Film updateFilm = new Film();
-        updateFilm.setId(createdFilm.getId());
-        updateFilm.setName("Updated Name");
-        // duration остается null
-
-        Film result = filmController.update(updateFilm);
-        assertEquals("Updated Name", result.getName());
-        assertEquals(120, result.getDuration()); // старое значение сохранилось
-    }
-
-    @Test
-    void updateFilm_WithNullName_ShouldUseOldValue() {
-        Film createdFilm = filmController.create(validFilm);
-
-        Film updateFilm = new Film();
-        updateFilm.setId(createdFilm.getId());
-        updateFilm.setDescription("New Description");
-        // name остается null
-
-        Film result = filmController.update(updateFilm);
-        assertEquals("Valid Film", result.getName()); // старое значение сохранилось
-        assertEquals("New Description", result.getDescription());
+        // Then
+        assertEquals(1, result.size());
+        verify(filmService, times(1)).getPopularFilms(10);
     }
 }
