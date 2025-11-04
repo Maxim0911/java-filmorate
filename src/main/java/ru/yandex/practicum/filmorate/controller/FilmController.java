@@ -1,126 +1,70 @@
+
 package ru.yandex.practicum.filmorate.controller;
 
-import exceptions.NotFoundException;
-import exceptions.ValidationException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
-
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
-import static java.text.MessageFormat.format;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import java.util.List;
 
 @RestController
 @RequestMapping("/films")
 @Slf4j
 public class FilmController {
+    private final FilmService filmService;
 
-    private final Map<Long, Film> films = new HashMap<>();
-
-    @ExceptionHandler(ValidationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationException(ValidationException e) {
-        log.error("Validation error: {}", e.getMessage());
-        return Map.of("error", e.getMessage());
-    }
-
-    @ExceptionHandler(NotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> handleNotFoundException(NotFoundException e) {
-        log.error("Not found error: {}", e.getMessage());
-        return Map.of("error", e.getMessage());
-    }
-
-    private long getNextId() {
-        long currentMaxId = films.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0L);
-        return currentMaxId + 1;
+    @Autowired
+    public FilmController(FilmService filmService) {
+        this.filmService = filmService;
     }
 
     @GetMapping
-    public Collection<Film> findAll() {
-        return films.values();
+    public List<Film> findAll() {
+        log.info("Получен запрос на получение всех фильмов");
+        return filmService.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public Film getFilm(@PathVariable Long id) {
+        log.info("Получен запрос на получение фильма с ID={}", id);
+        return filmService.getFilmById(id);
     }
 
     @PostMapping
     public Film create(@Valid @RequestBody Film film) {
-        try {
-            LocalDate minReleaseDate = LocalDate.of(1895, 12, 28);
-            if (film.getReleaseDate().isBefore(minReleaseDate)) {
-                throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
-            }
-
-            log.info("Добавление нового фильма: {}", film.getName());
-
-            film.setId(getNextId());
-            films.put(film.getId(), film);
-
-            log.info("Новый фильм успешно добавлен. Присвоено ID={}", film.getId());
-            return film;
-        } catch (ValidationException e) {
-            log.error(e.getMessage());
-            throw e;
-        }
+        log.info("Получен запрос на добавление фильма: {}", film.getName());
+        Film createdFilm = filmService.create(film);
+        log.info("Фильм успешно добавлен с ID={}", createdFilm.getId());
+        return createdFilm;
     }
 
     @PutMapping
-    public Film update(@Valid @RequestBody Film newFilm) {
-        try {
+    public Film update(@Valid @RequestBody Film film) {
+        log.info("Получен запрос на обновление фильма с ID={}", film.getId());
+        Film updatedFilm = filmService.update(film);
+        log.info("Фильм с ID={} успешно обновлен", updatedFilm.getId());
+        return updatedFilm;
+    }
 
-            if (newFilm.getId() == null || newFilm.getId() == 0) {
-                throw new NotFoundException("Необходимо указать ID фильма.");
-            }
+    @PutMapping("/{id}/like/{userId}")
+    public void addLike(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Получен запрос на добавление лайка фильму ID={} от пользователя ID={}", id, userId);
+        filmService.addLike(id, userId);
+        log.info("Лайк успешно добавлен");
+    }
 
-            log.info("Обновление фильма с ID {}", newFilm.getId());
+    @DeleteMapping("/{id}/like/{userId}")
+    public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Получен запрос на удаление лайка фильму ID={} от пользователя ID={}", id, userId);
+        filmService.removeLike(id, userId);
+        log.info("Лайк успешно удален");
+    }
 
-            if (!films.containsKey(newFilm.getId())) {
-                throw new NotFoundException(format("Фильм с id={0} не найден", newFilm.getId()));
-            }
-
-            Film oldFilm = films.get(newFilm.getId());
-
-            if (newFilm.getName() != null && !newFilm.getName().isBlank()) {
-                oldFilm.setName(newFilm.getName());
-            } else if (newFilm.getName() != null) {
-                throw new ValidationException("Название фильма не может быть пустым.");
-            }
-
-            if (newFilm.getDescription() != null) {
-                if (newFilm.getDescription().length() > 200) {
-                    throw new ValidationException("Описание фильма не может превышать 200 символов.");
-                }
-                oldFilm.setDescription(newFilm.getDescription());
-            }
-
-            if (newFilm.getReleaseDate() != null) {
-                LocalDate minReleaseDate = LocalDate.of(1895, 12, 28);
-                if (newFilm.getReleaseDate().isBefore(minReleaseDate)) {
-                    throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года.");
-                }
-                oldFilm.setReleaseDate(newFilm.getReleaseDate());
-            }
-
-            if (newFilm.getDuration() != null) {
-                if (newFilm.getDuration() <= 0) {
-                    throw new ValidationException("Продолжительность фильма не может быть отрицательным числом, либо равной нулю.");
-                }
-                oldFilm.setDuration(newFilm.getDuration());
-            }
-
-            log.info("Обновлен фильм с ID={}", newFilm.getId());
-            return oldFilm;
-
-        } catch (NotFoundException | ValidationException e) {
-            log.error(e.getMessage());
-            throw e;
-        }
+    @GetMapping("/popular")
+    public List<Film> getPopularFilms(@RequestParam(required = false) Integer count) {
+        log.info("Получен запрос на получение популярных фильмов, count={}", count);
+        return filmService.getPopularFilms(count);
     }
 }
