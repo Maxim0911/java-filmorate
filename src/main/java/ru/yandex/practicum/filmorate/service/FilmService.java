@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import java.time.LocalDate;
@@ -42,23 +44,23 @@ public class FilmService {
 
     public Film getFilmById(Long id) {
         return filmStorage.findById(id)
-                .orElseThrow(() -> new exceptions.NotFoundException("Фильм с id=" + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
     }
 
     public void addLike(Long filmId, Long userId) {
         Film film = getFilmById(filmId);
-        userService.getUserById(userId);
+        userService.getUserById(userId); // Проверяем что пользователь существует
 
         film.getLikes().add(userId);
-        filmStorage.update(film);
+        filmStorage.update(film); // Сохраняем изменения
     }
 
     public void removeLike(Long filmId, Long userId) {
         Film film = getFilmById(filmId);
-        userService.getUserById(userId);
+        userService.getUserById(userId); // Проверяем что пользователь существует
 
         film.getLikes().remove(userId);
-        filmStorage.update(film);
+        filmStorage.update(film); // Сохраняем изменения
     }
 
     public List<Film> getPopularFilms(Integer count) {
@@ -72,7 +74,7 @@ public class FilmService {
 
     private void validateFilm(Film film) {
         if (film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            throw new exceptions.ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
         }
     }
 }

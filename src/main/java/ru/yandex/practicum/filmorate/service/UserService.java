@@ -2,6 +2,8 @@ package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.util.List;
@@ -18,9 +20,9 @@ public class UserService {
 
     public User create(User user) {
         boolean emailExists = userStorage.findAll().stream()
-                .anyMatch(u -> u.getEmail().equals(user.getEmail()));
+                .anyMatch(u -> u.getEmail().equalsIgnoreCase(user.getEmail()));
         if (emailExists) {
-            throw new exceptions.ValidationException("Этот email уже используется.");
+            throw new ValidationException("Этот email уже используется.");
         }
 
         if (user.getName() == null || user.getName().isBlank()) {
@@ -34,11 +36,10 @@ public class UserService {
 
         boolean emailExists = userStorage.findAll().stream()
                 .filter(u -> !u.getId().equals(user.getId()))
-                .anyMatch(u -> u.getEmail().equals(user.getEmail()));
+                .anyMatch(u -> u.getEmail().equalsIgnoreCase(user.getEmail()));
         if (emailExists) {
-            throw new exceptions.ValidationException("Этот email уже используется.");
+            throw new ValidationException("Этот email уже используется.");
         }
-
         user.setFriends(existingUser.getFriends());
 
         return userStorage.update(user);
@@ -50,7 +51,7 @@ public class UserService {
 
     public User getUserById(Long id) {
         return userStorage.findById(id)
-                .orElseThrow(() -> new exceptions.NotFoundException("Пользователь с id=" + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
     }
 
     public void addFriend(Long userId, Long friendId) {

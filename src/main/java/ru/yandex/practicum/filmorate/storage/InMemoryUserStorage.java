@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.storage;
 
-import exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -24,17 +24,14 @@ public class InMemoryUserStorage implements UserStorage {
         if (!users.containsKey(user.getId())) {
             throw new NotFoundException("Пользователь с id=" + user.getId() + " не найден");
         }
-        User existingUser = users.get(user.getId());
-        User updatedUser = new User();
-        updatedUser.setId(user.getId());
-        updatedUser.setEmail(user.getEmail());
-        updatedUser.setLogin(user.getLogin());
-        updatedUser.setName(user.getName());
-        updatedUser.setBirthday(user.getBirthday());
-        updatedUser.setFriends(existingUser.getFriends()); // Сохраняем друзей
 
-        users.put(user.getId(), updatedUser);
-        return updatedUser;
+        User existingUser = users.get(user.getId());
+        existingUser.setEmail(user.getEmail());
+        existingUser.setLogin(user.getLogin());
+        existingUser.setName(user.getName());
+        existingUser.setBirthday(user.getBirthday());
+
+        return existingUser;
     }
 
     @Override

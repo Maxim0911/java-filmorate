@@ -25,4 +25,17 @@ public class Film {
     private Integer duration;
 
     private Set<Long> likes = new HashSet<>();
+
+    public Film() {
+        this.likes = new HashSet<>();
+    }
+
+    public Film(Long id, String name, String description, LocalDate releaseDate, Integer duration) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.releaseDate = releaseDate;
+        this.duration = duration;
+        this.likes = new HashSet<>();
+    }
 }
