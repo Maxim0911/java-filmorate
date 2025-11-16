@@ -1,3 +1,3 @@
 # java-filmorate
 Схема базы данных кино‑сервиса.
-<img width="1111" height="728" alt="Untitled (1)" src="https://github.com/user-attachments/assets/c41076f4-dad3-4f5b-bd18-43a1c257ef88" />
+<img width="1140" height="567" alt="Untitled (2)" src="https://github.com/user-attachments/assets/35a46515-5814-459e-aa45-b2b2d869fac0" />
