@@ -91,11 +91,14 @@ JOIN genre g ON fg.genre_id = g.id
 JOIN rating r ON f.rating = r.id
 WHERE g.name = 'Комедия';
 ```
-4. Получение списка всех фильмов.
+4. Получение списка всех фильмов
 ```SQL
-SELECT id,
-       name,
-       description,
-       duration
-FROM Films;
+SELECT 
+    f.id,
+    f.name,
+    f.description,
+    f.duration,
+    r.rating
+FROM Films f
+JOIN rating r ON f.rating = r.id;
 ```
