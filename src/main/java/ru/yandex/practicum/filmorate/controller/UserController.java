@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import java.util.List;
 
 @RestController
@@ -14,10 +16,12 @@ import java.util.List;
 @Slf4j
 public class UserController {
     private final UserService userService;
+    private final JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, JdbcTemplate jdbcTemplate) {
         this.userService = userService;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @GetMapping
