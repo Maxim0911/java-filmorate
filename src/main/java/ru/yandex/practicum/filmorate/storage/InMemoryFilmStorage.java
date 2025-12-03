@@ -20,6 +20,28 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
+    public void addLike(Long filmId, Long userId) {
+        Film film = films.get(filmId);
+        if (film != null) {
+            film.getLikes().add(userId);
+        }
+    }
+
+    @Override
+    public void removeLike(Long filmId, Long userId) {
+        Film film = films.get(filmId);
+        if (film != null) {
+            film.getLikes().remove(userId);
+        }
+    }
+
+    @Override
+    public int getLikesCount(Long filmId) {
+        Film film = films.get(filmId);
+        return film != null ? film.getLikes().size() : 0;
+    }
+
+    @Override
     public Film update(Film film) {
         if (!films.containsKey(film.getId())) {
             throw new NotFoundException("Фильм с id=" + film.getId() + " не найден");

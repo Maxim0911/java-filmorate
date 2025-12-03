@@ -1,11 +1,12 @@
-
 package ru.yandex.practicum.filmorate.model;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
+
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Data
 public class Film {
@@ -24,10 +25,13 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Integer duration;
 
+    private Mpa mpa;
+    private Set<Genre> genres = new HashSet<>();
     private Set<Long> likes = new HashSet<>();
 
     public Film() {
         this.likes = new HashSet<>();
+        this.genres = new HashSet<>();
     }
 
     public Film(Long id, String name, String description, LocalDate releaseDate, Integer duration) {
@@ -37,5 +41,40 @@ public class Film {
         this.releaseDate = releaseDate;
         this.duration = duration;
         this.likes = new HashSet<>();
+        this.genres = new HashSet<>();
+    }
+
+    public Set<Long> getGenreIds() {
+        return genres.stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet());
+    }
+
+    public void setGenreIds(Set<Long> genreIds) {
+        if (genreIds != null) {
+            this.genres = genreIds.stream()
+                    .map(Genre::new)
+                    .collect(Collectors.toSet());
+        }
+    }
+
+    public void addGenreId(Long genreId) {
+        this.genres.add(new Genre(genreId));
+    }
+
+    public void removeGenreId(Long genreId) {
+        this.genres.removeIf(genre -> genre.getId().equals(genreId));
+    }
+
+    public Integer getRatingId() {
+        return mpa != null ? mpa.getId().intValue() : null;
+    }
+
+    public void setRatingId(Integer ratingId) {
+        if (ratingId == null) {
+            this.mpa = null;
+        } else {
+            this.mpa = new Mpa(ratingId.longValue(), null, null);
+        }
     }
 }
