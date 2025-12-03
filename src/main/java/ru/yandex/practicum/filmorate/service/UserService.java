@@ -10,6 +10,7 @@ import ru.yandex.practicum.filmorate.model.Friendship;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -75,7 +76,7 @@ public class UserService {
             throw new ValidationException("Пользователь уже в друзьях");
         }
 
-        Friendship friendship = new Friendship(userId, friendId, FriendshipStatus.CONFIRMED);
+        Friendship friendship = new Friendship(userId, friendId, FriendshipStatus.CONFIRMED, LocalDateTime.now());
         user.getFriendships().add(friendship);
 
         userStorage.update(user);

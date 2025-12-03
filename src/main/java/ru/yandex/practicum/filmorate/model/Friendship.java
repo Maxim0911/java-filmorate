@@ -13,14 +13,7 @@ public class Friendship {
     private Long userId;
     private Long friendId;
     private FriendshipStatus status;
-    private LocalDateTime createdDate = LocalDateTime.now();
-
-    public Friendship(Long userId, Long friendId, FriendshipStatus status) {
-        this.userId = userId;
-        this.friendId = friendId;
-        this.status = status;
-        this.createdDate = LocalDateTime.now();
-    }
+    private LocalDateTime createdDate = LocalDateTime.now(); // инициализация по умолчанию
 
     public boolean isConfirmed() {
         return this.status == FriendshipStatus.CONFIRMED;

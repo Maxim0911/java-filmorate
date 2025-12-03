@@ -13,14 +13,11 @@ import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
 
 @Repository
 @Primary
-@RequiredArgsConstructor // Оставляем только эту аннотацию
+@RequiredArgsConstructor
 public class UserDbStorage implements UserStorage {
 
     private final JdbcTemplate jdbcTemplate;
@@ -112,13 +109,17 @@ public class UserDbStorage implements UserStorage {
 
         if (user.getFriendships() != null && !user.getFriendships().isEmpty()) {
             String insertSql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, ?)";
+
+            List<Object[]> batchArgs = new ArrayList<>();
             for (Friendship friendship : user.getFriendships()) {
-                jdbcTemplate.update(insertSql,
+                batchArgs.add(new Object[]{
                         user.getId(),
                         friendship.getFriendId(),
                         friendship.getStatus().name()
-                );
+                });
             }
+
+            jdbcTemplate.batchUpdate(insertSql, batchArgs);
         }
     }
 

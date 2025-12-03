@@ -1,6 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.RaitingFilm;
 
@@ -8,6 +10,8 @@ import java.time.LocalDate;
 import java.util.Set;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class FilmRequest {
     private Long id;
     private String name;
@@ -16,15 +20,4 @@ public class FilmRequest {
     private Integer duration;
     private RaitingFilm mpa;
     private Set<Genre> genres;
-
-    public FilmRequest() {
-    }
-
-    public FilmRequest(String name, String description, LocalDate releaseDate, Integer duration, RaitingFilm mpa) {
-        this.name = name;
-        this.description = description;
-        this.releaseDate = releaseDate;
-        this.duration = duration;
-        this.mpa = mpa;
-    }
 }
